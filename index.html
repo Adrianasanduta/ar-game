@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AR game</title>
+    <!-- import aframe and then ar.js with image tracking / location based features -->
+    <!-- <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1c2407b26c61958baa93967b5412487cd94b290b/dist/aframe-master.min.js"></script> -->
+    <script src="https://aframe.io/releases/1.0.0/aframe.min.js"></script>
+    <!-- <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script> -->
+    <!-- we import arjs version without NFT but with marker + location based support -->
+    <script src="aframe-ar.js"></script>
+    <style></style>
+  </head>
+  <body style="margin: 0px; overflow: hidden">
+    <script>
+      window.allPlayers = [];
+      window.timerId = null;
+      window.playersInGame = {};
+
+      function play() {
+        let winner;
+        let looser;
+        console.log(window.playersInGame);
+        const players = Object.keys(window.playersInGame);
+        const playersIdSum = players
+          .map(Number)
+          .reduce((sum, id) => sum + id, 0);
+        switch (playersIdSum) {
+          case 1:
+            winner = window.playersInGame["1"];
+            looser = window.playersInGame["0"];
+            break;
+          case 2:
+            winner = window.playersInGame["0"];
+            looser = window.playersInGame["2"];
+            break;
+          case 3:
+            winner = window.playersInGame["2"];
+            looser = window.playersInGame["1"];
+            break;
+          default:
+            alert("Error");
+        }
+        window.timerId = setTimeout(async () => {
+          winner.children[0].setAttribute("position", "0 1.5 0");
+          looser.children[0].setAttribute("position", "0 0.5 0");
+        }, 2000);
+      }
+
+      function reset() {
+        window.allPlayers.forEach((m) => {
+          m.children[0].setAttribute("position", "0 1 0");
+        });
+        clearTimeout(window.timerId);
+      }
+
+      AFRAME.registerComponent("markerhandler", {
+        init: function () {
+          const marker = this.el;
+          window.allPlayers.push(marker);
+          console.log({ marker });
+
+          marker.addEventListener("markerFound", function () {
+            const markerValue = marker.getAttribute("value");
+            console.log("found " + markerValue);
+            window.playersInGame[markerValue] = marker;
+            if (Object.keys(window.playersInGame).length === 2) {
+              play();
+            }
+            if (Object.keys(window.playersInGame).length === 3) {
+              reset();
+            }
+          });
+          marker.addEventListener("markerLost", function () {
+            const markerValue = marker.getAttribute("value");
+            console.log("lost " + markerValue);
+            delete window.playersInGame[markerValue];
+            reset();
+
+            if (Object.keys(window.playersInGame).length === 2) {
+              play();
+            }
+          });
+        },
+      });
+    </script>
+    <!-- a-frame scene -->
+    <a-scene
+      embedded
+      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+    >
+      <a-marker preset="hiro">
+        <a-box color="tomato" depth="2" height="2" width="2"></a-box>
+      </a-marker>
+      <a-marker type="barcode" markerhandler="true" value="0">
+        <a-entity
+          position="0 1 0"
+          scale="0.02 0.02 0.02"
+          gltf-model="Stone.gltf"
+        ></a-entity>
+      </a-marker>
+      <a-marker type="barcode" markerhandler="true" value="1">
+        <a-entity
+          position="0 1 0"
+          scale="0.1 0.1 0.1"
+          gltf-model="Paper.gltf"
+        ></a-entity>
+      </a-marker>
+      <a-marker type="barcode" markerhandler="true" value="2">
+        <a-entity
+          position="0 1 0"
+          scale="0.1 0.1 0.1"
+          gltf-model="Scissors.gltf"
+        ></a-entity>
+      </a-marker>
+      <!-- static camera that moves according to the device movemenents -->
+      <a-entity camera></a-entity>
+    </a-scene>
+  </body>
+</html>
